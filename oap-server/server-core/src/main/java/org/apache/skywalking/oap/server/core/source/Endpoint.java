@@ -20,13 +20,20 @@ package org.apache.skywalking.oap.server.core.source;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.skywalking.apm.util.StringUtil;
+import org.apache.skywalking.oap.server.core.analysis.IDManager;
+import org.apache.skywalking.oap.server.core.analysis.NodeType;
 
 import static org.apache.skywalking.oap.server.core.source.DefaultScopeDefine.ENDPOINT;
 import static org.apache.skywalking.oap.server.core.source.DefaultScopeDefine.ENDPOINT_CATALOG_NAME;
 
 @ScopeDeclaration(id = ENDPOINT, name = "Endpoint", catalog = ENDPOINT_CATALOG_NAME)
 @ScopeDefaultColumn.VirtualColumnDefinition(fieldName = "entityId", columnName = "entity_id", isID = true, type = String.class)
+@Slf4j
 public class Endpoint extends Source {
+    private String entityId;
+
     @Override
     public int scope() {
         return DefaultScopeDefine.ENDPOINT;
@@ -34,28 +41,25 @@ public class Endpoint extends Source {
 
     @Override
     public String getEntityId() {
-        return String.valueOf(id);
+        if (StringUtil.isEmpty(entityId)) {
+            entityId = IDManager.EndpointID.buildId(serviceId, name);
+        }
+        return entityId;
     }
 
-    @Getter
-    @Setter
-    private int id;
     @Getter
     @Setter
     @ScopeDefaultColumn.DefinedByField(columnName = "name", requireDynamicActive = true)
     private String name;
     @Getter
-    @Setter
     @ScopeDefaultColumn.DefinedByField(columnName = "service_id")
-    private int serviceId;
+    private String serviceId;
     @Getter
     @Setter
     @ScopeDefaultColumn.DefinedByField(columnName = "service_name", requireDynamicActive = true)
     private String serviceName;
-    @Getter
     @Setter
-    @ScopeDefaultColumn.DefinedByField(columnName = "service_instance_id")
-    private int serviceInstanceId;
+    private NodeType serviceNodeType;
     @Getter
     @Setter
     private String serviceInstanceName;
@@ -71,4 +75,9 @@ public class Endpoint extends Source {
     @Getter
     @Setter
     private RequestType type;
+
+    @Override
+    public void prepare() {
+        serviceId = IDManager.ServiceID.buildId(serviceName, serviceNodeType);
+    }
 }

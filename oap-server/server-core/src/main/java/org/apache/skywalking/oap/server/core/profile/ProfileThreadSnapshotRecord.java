@@ -31,6 +31,7 @@ import org.apache.skywalking.oap.server.core.analysis.worker.RecordStreamProcess
 import org.apache.skywalking.oap.server.core.source.ScopeDeclaration;
 import org.apache.skywalking.oap.server.core.storage.StorageBuilder;
 import org.apache.skywalking.oap.server.core.storage.annotation.Column;
+import org.apache.skywalking.oap.server.core.storage.annotation.QueryUnifiedIndex;
 import org.apache.skywalking.oap.server.library.util.CollectionUtils;
 
 import static org.apache.skywalking.oap.server.core.source.DefaultScopeDefine.PROFILE_TASK_SEGMENT_SNAPSHOT;
@@ -52,8 +53,11 @@ public class ProfileThreadSnapshotRecord extends Record {
     public static final String STACK_BINARY = "stack_binary";
 
     @Column(columnName = TASK_ID)
+    @QueryUnifiedIndex(withColumns = {SEGMENT_ID})
     private String taskId;
     @Column(columnName = SEGMENT_ID)
+    @QueryUnifiedIndex(withColumns = {SEQUENCE})
+    @QueryUnifiedIndex(withColumns = {DUMP_TIME})
     private String segmentId;
     @Column(columnName = DUMP_TIME)
     private long dumpTime;
@@ -64,7 +68,7 @@ public class ProfileThreadSnapshotRecord extends Record {
 
     @Override
     public String id() {
-        return getTaskId() + Const.ID_SPLIT + getSegmentId() + Const.ID_SPLIT + getSequence() + Const.ID_SPLIT;
+        return getTaskId() + Const.ID_CONNECTOR + getSegmentId() + Const.ID_CONNECTOR + getSequence() + Const.ID_CONNECTOR;
     }
 
     public static class Builder implements StorageBuilder<ProfileThreadSnapshotRecord> {

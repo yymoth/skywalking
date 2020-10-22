@@ -19,28 +19,29 @@
 package org.apache.skywalking.oal.rt.parser;
 
 import java.util.Objects;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.skywalking.oal.rt.util.ClassMethodUtil;
 
-@Getter(AccessLevel.PUBLIC)
-@Setter(AccessLevel.PUBLIC)
+@Getter
+@Setter
 public class SourceColumn {
     private String fieldName;
     private String columnName;
     private Class<?> type;
     private String typeName;
     private boolean isID;
+    private int length;
     private String fieldSetter;
     private String fieldGetter;
 
-    public SourceColumn(String fieldName, String columnName, Class<?> type, boolean isID) {
+    public SourceColumn(String fieldName, String columnName, Class<?> type, boolean isID, int length) {
         this.fieldName = fieldName;
         this.columnName = columnName;
         this.type = type;
         this.typeName = type.getName();
         this.isID = isID;
+        this.length = length;
 
         this.fieldGetter = ClassMethodUtil.toGetMethod(fieldName);
         this.fieldSetter = ClassMethodUtil.toSetMethod(fieldName);

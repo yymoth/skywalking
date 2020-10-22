@@ -29,9 +29,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import org.apache.skywalking.aop.server.receiver.mesh.TelemetryDataDispatcher;
-import org.apache.skywalking.apm.network.common.DetectPoint;
-import org.apache.skywalking.apm.network.servicemesh.Protocol;
-import org.apache.skywalking.apm.network.servicemesh.ServiceMeshMetric;
+import org.apache.skywalking.apm.network.common.v3.DetectPoint;
+import org.apache.skywalking.apm.network.servicemesh.v3.Protocol;
+import org.apache.skywalking.apm.network.servicemesh.v3.ServiceMeshMetric;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
 import org.apache.skywalking.oap.server.telemetry.TelemetryModule;
 import org.apache.skywalking.oap.server.telemetry.api.CounterMetrics;
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
  */
 public class IstioTelemetryGRPCHandler extends HandleMetricServiceGrpc.HandleMetricServiceImplBase {
 
-    private static final Logger logger = LoggerFactory.getLogger(IstioTelemetryGRPCHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(IstioTelemetryGRPCHandler.class);
 
     private static final Joiner JOINER = Joiner.on(".");
 
@@ -64,8 +64,8 @@ public class IstioTelemetryGRPCHandler extends HandleMetricServiceGrpc.HandleMet
     @Override
     public void handleMetric(IstioMetricProto.HandleMetricRequest request,
         StreamObserver<ReportProto.ReportResult> responseObserver) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Received msg {}", request);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Received msg {}", request);
         }
         for (IstioMetricProto.InstanceMsg i : request.getInstancesList()) {
             counter.inc();
@@ -117,7 +117,7 @@ public class IstioTelemetryGRPCHandler extends HandleMetricServiceGrpc.HandleMet
                     destServiceName = string(i, "destinationService");
                 }
 
-                ServiceMeshMetric metrics = ServiceMeshMetric.newBuilder()
+                ServiceMeshMetric.Builder metrics = ServiceMeshMetric.newBuilder()
                                                              .setStartTime(requestTime.toEpochMilli())
                                                              .setEndTime(responseTime.toEpochMilli())
                                                              .setSourceServiceName(sourceServiceName)
@@ -129,11 +129,10 @@ public class IstioTelemetryGRPCHandler extends HandleMetricServiceGrpc.HandleMet
                                                              .setResponseCode(Math.toIntExact(responseCode))
                                                              .setStatus(status)
                                                              .setProtocol(netProtocol)
-                                                             .setDetectPoint(detectPoint)
-                                                             .build();
-                logger.debug("Transformed metrics {}", metrics);
+                                                             .setDetectPoint(detectPoint);
+                LOGGER.debug("Transformed metrics {}", metrics);
 
-                TelemetryDataDispatcher.preProcess(metrics);
+                TelemetryDataDispatcher.process(metrics);
             } finally {
                 timer.finish();
             }

@@ -22,16 +22,18 @@ import java.io.IOException;
 import java.util.List;
 import org.apache.skywalking.oap.server.core.annotation.AnnotationScan;
 import org.apache.skywalking.oap.server.core.source.DefaultScopeDefine;
+import org.apache.skywalking.oap.server.core.storage.StorageException;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ScriptParserTest {
-    @BeforeClass
-    public static void init() throws IOException {
-        MetricsHolder.init();
 
+    private static final String TEST_SOURCE_PACKAGE = ScriptParserTest.class.getPackage().getName() + ".test.source.";
+
+    @BeforeClass
+    public static void init() throws IOException, StorageException {
         AnnotationScan scopeScan = new AnnotationScan();
         scopeScan.registerListener(new DefaultScopeDefine.Listener());
         scopeScan.scan();
@@ -44,7 +46,10 @@ public class ScriptParserTest {
 
     @Test
     public void testParse() throws IOException {
-        ScriptParser parser = ScriptParser.createFromScriptText("Endpoint_avg = from(Endpoint.latency).longAvg(); //comment test" + "\n" + "Service_avg = from(Service.latency).longAvg()");
+        ScriptParser parser = ScriptParser.createFromScriptText(
+            "Endpoint_avg = from(Endpoint.latency).longAvg(); //comment test" + "\n" + "Service_avg = from(Service.latency).longAvg()",
+            TEST_SOURCE_PACKAGE
+        );
         List<AnalysisResult> results = parser.parse().getMetricsStmts();
 
         Assert.assertEquals(2, results.size());
@@ -64,7 +69,8 @@ public class ScriptParserTest {
 
     @Test
     public void testParse2() throws IOException {
-        ScriptParser parser = ScriptParser.createFromScriptText("Endpoint_percent = from(Endpoint.*).percent(status == true);");
+        ScriptParser parser = ScriptParser.createFromScriptText(
+            "Endpoint_percent = from(Endpoint.*).percent(status == true);", TEST_SOURCE_PACKAGE);
         List<AnalysisResult> results = parser.parse().getMetricsStmts();
 
         AnalysisResult endpointPercent = results.get(0);
@@ -79,7 +85,10 @@ public class ScriptParserTest {
 
     @Test
     public void testParse3() throws IOException {
-        ScriptParser parser = ScriptParser.createFromScriptText("Endpoint_percent = from(Endpoint.*).filter(status == true).filter(name == \"/product/abc\").longAvg();");
+        ScriptParser parser = ScriptParser.createFromScriptText(
+            "Endpoint_percent = from(Endpoint.*).filter(status == true).filter(name == \"/product/abc\").longAvg();",
+            TEST_SOURCE_PACKAGE
+        );
         List<AnalysisResult> results = parser.parse().getMetricsStmts();
 
         AnalysisResult endpointPercent = results.get(0);
@@ -104,7 +113,13 @@ public class ScriptParserTest {
 
     @Test
     public void testParse4() throws IOException {
-        ScriptParser parser = ScriptParser.createFromScriptText("service_response_s1_summary = from(Service.latency).filter(latency > 1000).sum();" + "\n" + "service_response_s2_summary = from(Service.latency).filter(latency < 2000).sum();" + "\n" + "service_response_s3_summary = from(Service.latency).filter(latency >= 3000).sum();" + "\n" + "service_response_s4_summary = from(Service.latency).filter(latency <= 4000).sum();");
+        ScriptParser parser = ScriptParser.createFromScriptText(
+            "service_response_s1_summary = from(Service.latency).filter(latency > 1000).sum();" + "\n"
+                + "service_response_s2_summary = from(Service.latency).filter(latency < 2000).sum();" + "\n"
+                + "service_response_s3_summary = from(Service.latency).filter(latency >= 3000).sum();" + "\n"
+                + "service_response_s4_summary = from(Service.latency).filter(latency <= 4000).sum();",
+            TEST_SOURCE_PACKAGE
+        );
         List<AnalysisResult> results = parser.parse().getMetricsStmts();
 
         AnalysisResult responseSummary = results.get(0);
@@ -153,8 +168,71 @@ public class ScriptParserTest {
     }
 
     @Test
+    public void testParse5() throws IOException {
+        ScriptParser parser = ScriptParser.createFromScriptText(
+            "service_response_s4_summary = from(Service.latency).rate(param1 == true,param2 == false);",
+            TEST_SOURCE_PACKAGE
+        );
+        List<AnalysisResult> results = parser.parse().getMetricsStmts();
+        Assert.assertEquals(1, results.size());
+        AnalysisResult result = results.get(0);
+        Assert.assertEquals("rate", result.getAggregationFunctionName());
+        Assert.assertEquals(2, result.getFuncConditionExpressions().size());
+
+        ConditionExpression expression1 = result.getFuncConditionExpressions().get(0);
+        Assert.assertEquals("param1", expression1.getAttribute());
+        Assert.assertEquals("booleanMatch", expression1.getExpressionType());
+        Assert.assertEquals("true", expression1.getValue());
+
+        ConditionExpression expression2 = result.getFuncConditionExpressions().get(1);
+        Assert.assertEquals("param2", expression2.getAttribute());
+        Assert.assertEquals("booleanMatch", expression2.getExpressionType());
+        Assert.assertEquals("false", expression2.getValue());
+    }
+
+    @Test
+    public void testParse6() throws IOException {
+        ScriptParser parser = ScriptParser.createFromScriptText(
+            "service_response_s4_summary = from(Service.latency).filter(latency like \"%a\").sum();",
+            TEST_SOURCE_PACKAGE
+        );
+        List<AnalysisResult> results = parser.parse().getMetricsStmts();
+        Assert.assertEquals(1, results.size());
+        AnalysisResult result = results.get(0);
+        List<Expression> expressions = result.getFilterExpressions();
+        Assert.assertEquals(1, expressions.size());
+        Expression expression = expressions.get(0);
+        Assert.assertEquals("source.getLatency()", expression.getLeft());
+        Assert.assertEquals(
+            "org.apache.skywalking.oap.server.core.analysis.metrics.expression.LikeMatch",
+            expression.getExpressionObject()
+        );
+        Assert.assertEquals("\"%a\"", expression.getRight());
+    }
+
+    @Test
+    public void testParse7() throws IOException {
+        ScriptParser parser = ScriptParser.createFromScriptText(
+            "service_response_s4_summary = from(Service.latency).filter(latency != 1).filter(latency in [1,2, 3]).sum();",
+            TEST_SOURCE_PACKAGE
+        );
+        List<AnalysisResult> results = parser.parse().getMetricsStmts();
+        Assert.assertEquals(1, results.size());
+        AnalysisResult result = results.get(0);
+        List<Expression> expressions = result.getFilterExpressions();
+        Assert.assertEquals(2, expressions.size());
+        Expression expression = expressions.get(1);
+        Assert.assertEquals("source.getLatency()", expression.getLeft());
+        Assert.assertEquals(
+            "org.apache.skywalking.oap.server.core.analysis.metrics.expression.InMatch",
+            expression.getExpressionObject()
+        );
+        Assert.assertEquals("new Object[]{1,2,3}", expression.getRight());
+    }
+
+    @Test
     public void testDisable() throws IOException {
-        ScriptParser parser = ScriptParser.createFromScriptText("disable(segment);");
+        ScriptParser parser = ScriptParser.createFromScriptText("disable(segment);", TEST_SOURCE_PACKAGE);
         DisableCollection collection = parser.parse().getDisableCollection();
         List<String> sources = collection.getAllDisableSources();
         Assert.assertEquals(1, sources.size());

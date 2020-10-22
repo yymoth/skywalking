@@ -41,11 +41,6 @@ public class EntrySpan extends StackBasedTracingSpan {
         this.currentMaxDepth = 0;
     }
 
-    public EntrySpan(int spanId, int parentSpanId, int operationId, TracingContext owner) {
-        super(spanId, parentSpanId, operationId, owner);
-        this.currentMaxDepth = 0;
-    }
-
     /**
      * Set the {@link #startTime}, when the first start, which means the first service provided.
      */
@@ -85,27 +80,9 @@ public class EntrySpan extends StackBasedTracingSpan {
     }
 
     @Override
-    public AbstractTracingSpan setComponent(String componentName) {
-        if (stackDepth == currentMaxDepth) {
-            return super.setComponent(componentName);
-        } else {
-            return this;
-        }
-    }
-
-    @Override
     public AbstractTracingSpan setOperationName(String operationName) {
         if (stackDepth == currentMaxDepth || isInAsyncMode) {
             return super.setOperationName(operationName);
-        } else {
-            return this;
-        }
-    }
-
-    @Override
-    public AbstractTracingSpan setOperationId(int operationId) {
-        if (stackDepth == currentMaxDepth) {
-            return super.setOperationId(operationId);
         } else {
             return this;
         }
@@ -129,7 +106,6 @@ public class EntrySpan extends StackBasedTracingSpan {
 
     private void clearWhenRestart() {
         this.componentId = DictionaryUtil.nullValue();
-        this.componentName = null;
         this.layer = null;
         this.logs = null;
         this.tags = null;

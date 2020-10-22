@@ -49,17 +49,17 @@ public class AlarmRecord extends Record {
 
     @Override
     public String id() {
-        return getTimeBucket() + Const.ID_SPLIT + scope + Const.ID_SPLIT + id0 + Const.ID_SPLIT + id1;
+        return getTimeBucket() + Const.ID_CONNECTOR + scope + Const.ID_CONNECTOR + id0 + Const.ID_CONNECTOR + id1;
     }
 
     @Column(columnName = SCOPE)
     private int scope;
-    @Column(columnName = NAME)
+    @Column(columnName = NAME, storageOnly = true)
     private String name;
-    @Column(columnName = ID0)
-    private int id0;
-    @Column(columnName = ID1)
-    private int id1;
+    @Column(columnName = ID0, storageOnly = true)
+    private String id0;
+    @Column(columnName = ID1, storageOnly = true)
+    private String id1;
     @Column(columnName = START_TIME)
     private long startTime;
     @Column(columnName = ALARM_MESSAGE, matchQuery = true)
@@ -85,8 +85,8 @@ public class AlarmRecord extends Record {
             AlarmRecord record = new AlarmRecord();
             record.setScope(((Number) dbMap.get(SCOPE)).intValue());
             record.setName((String) dbMap.get(NAME));
-            record.setId0(((Number) dbMap.get(ID0)).intValue());
-            record.setId1(((Number) dbMap.get(ID1)).intValue());
+            record.setId0((String) dbMap.get(ID0));
+            record.setId1((String) dbMap.get(ID1));
             record.setAlarmMessage((String) dbMap.get(ALARM_MESSAGE));
             record.setStartTime(((Number) dbMap.get(START_TIME)).longValue());
             record.setTimeBucket(((Number) dbMap.get(TIME_BUCKET)).longValue());

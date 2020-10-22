@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.skywalking.oap.server.core.alarm.AlarmMessage;
 import org.apache.skywalking.oap.server.core.alarm.provider.AlarmRulesWatcher;
 import org.apache.skywalking.oap.server.core.alarm.provider.Rules;
-import org.apache.skywalking.oap.server.core.query.entity.Scope;
+import org.apache.skywalking.oap.server.core.query.enumeration.Scope;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -66,8 +66,8 @@ public class GRPChookCallbackTest {
 
     private void mockAlarmMessage() {
         AlarmMessage alarmMessage = new AlarmMessage();
-        alarmMessage.setId0(1);
-        alarmMessage.setId1(2);
+        alarmMessage.setId0("1");
+        alarmMessage.setId1("2");
         alarmMessage.setScope(Scope.Service.name());
         alarmMessage.setName("mock alarm message");
         alarmMessage.setAlarmMessage("message");

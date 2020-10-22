@@ -21,6 +21,7 @@ package org.apache.skywalking.oap.server.cluster.plugin.nacos;
 import com.alibaba.nacos.api.naming.NamingService;
 import java.util.Collections;
 import java.util.List;
+
 import org.apache.skywalking.apm.util.StringUtil;
 import org.apache.skywalking.oap.server.core.cluster.ClusterNodesQuery;
 import org.apache.skywalking.oap.server.core.cluster.ClusterRegister;
@@ -39,9 +40,13 @@ import static org.junit.Assert.assertTrue;
 public class ITClusterModuleNacosProviderFunctionalTest {
 
     private String nacosAddress;
+    private String username;
+    private String password;
 
     @Before
     public void before() {
+        username = "nacos";
+        password = "nacos";
         nacosAddress = System.getProperty("nacos.address");
         assertFalse(StringUtil.isEmpty(nacosAddress));
     }
@@ -59,6 +64,25 @@ public class ITClusterModuleNacosProviderFunctionalTest {
         assertEquals(1, remoteInstances.size());
         Address queryAddress = remoteInstances.get(0).getAddress();
         assertEquals(selfAddress, queryAddress);
+        assertTrue(queryAddress.isSelf());
+    }
+
+    @Test
+    public void registerRemoteOfInternal() throws Exception {
+        final String serviceName = "register_remote_internal";
+        ModuleProvider provider = createProvider(serviceName, "127.0.1.2", 1000);
+
+        Address selfAddress = new Address("127.0.0.2", 1000, true);
+        RemoteInstance instance = new RemoteInstance(selfAddress);
+        getClusterRegister(provider).registerRemote(instance);
+
+        List<RemoteInstance> remoteInstances = queryRemoteNodes(provider, 1);
+
+        ClusterModuleNacosConfig config = (ClusterModuleNacosConfig) provider.createConfigBeanIfAbsent();
+        assertEquals(1, remoteInstances.size());
+        Address queryAddress = remoteInstances.get(0).getAddress();
+        assertEquals(config.getInternalComHost(), queryAddress.getHost());
+        assertEquals(config.getInternalComPort(), queryAddress.getPort());
         assertTrue(queryAddress.isSelf());
     }
 
@@ -144,6 +168,33 @@ public class ITClusterModuleNacosProviderFunctionalTest {
 
         config.setHostPort(nacosAddress);
         config.setServiceName(servicName);
+        config.setUsername(username);
+        config.setPassword(password);
+
+        provider.prepare();
+        provider.start();
+        provider.notifyAfterCompleted();
+        return provider;
+    }
+
+    private ClusterModuleNacosProvider createProvider(String serviceName, String internalComHost,
+                                                       int internalComPort) throws Exception {
+        ClusterModuleNacosProvider provider = new ClusterModuleNacosProvider();
+
+        ClusterModuleNacosConfig config = (ClusterModuleNacosConfig) provider.createConfigBeanIfAbsent();
+
+        config.setHostPort(nacosAddress);
+        config.setServiceName(serviceName);
+        config.setUsername(username);
+        config.setPassword(password);
+
+        if (!StringUtil.isEmpty(internalComHost)) {
+            config.setInternalComHost(internalComHost);
+        }
+
+        if (internalComPort > 0) {
+            config.setInternalComPort(internalComPort);
+        }
 
         provider.prepare();
         provider.start();

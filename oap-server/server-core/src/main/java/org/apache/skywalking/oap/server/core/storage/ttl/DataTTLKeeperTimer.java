@@ -32,7 +32,7 @@ import org.apache.skywalking.oap.server.core.cluster.ClusterNodesQuery;
 import org.apache.skywalking.oap.server.core.cluster.RemoteInstance;
 import org.apache.skywalking.oap.server.core.storage.IHistoryDeleteDAO;
 import org.apache.skywalking.oap.server.core.storage.StorageModule;
-import org.apache.skywalking.oap.server.core.storage.model.IModelGetter;
+import org.apache.skywalking.oap.server.core.storage.model.IModelManager;
 import org.apache.skywalking.oap.server.core.storage.model.Model;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
 import org.apache.skywalking.oap.server.library.util.CollectionUtils;
@@ -51,10 +51,12 @@ public enum DataTTLKeeperTimer {
 
     private ModuleManager moduleManager;
     private ClusterNodesQuery clusterNodesQuery;
+    private CoreModuleConfig moduleConfig;
 
     public void start(ModuleManager moduleManager, CoreModuleConfig moduleConfig) {
         this.moduleManager = moduleManager;
         this.clusterNodesQuery = moduleManager.find(ClusterModule.NAME).provider().getService(ClusterNodesQuery.class);
+        this.moduleConfig = moduleConfig;
 
         Executors.newSingleThreadScheduledExecutor()
                  .scheduleAtFixedRate(
@@ -77,21 +79,22 @@ public enum DataTTLKeeperTimer {
         }
 
         log.info("Beginning to remove expired metrics from the storage.");
-        IModelGetter modelGetter = moduleManager.find(CoreModule.NAME).provider().getService(IModelGetter.class);
-        List<Model> models = modelGetter.getModels();
-        models.forEach(model -> {
-            if (model.isDeleteHistory()) {
-                execute(model);
-            }
-        });
+        IModelManager modelGetter = moduleManager.find(CoreModule.NAME).provider().getService(IModelManager.class);
+        List<Model> models = modelGetter.allModels();
+        models.forEach(this::execute);
     }
 
     private void execute(Model model) {
         try {
+            if (!model.isTimeSeries()) {
+                return;
+            }
             moduleManager.find(StorageModule.NAME)
                          .provider()
                          .getService(IHistoryDeleteDAO.class)
-                         .deleteHistory(model, Metrics.TIME_BUCKET);
+                         .deleteHistory(model, Metrics.TIME_BUCKET,
+                                        model.isRecord() ? moduleConfig.getRecordDataTTL() : moduleConfig.getMetricsDataTTL()
+                         );
         } catch (IOException e) {
             log.warn("History of {} delete failure", model.getName());
             log.error(e.getMessage(), e);

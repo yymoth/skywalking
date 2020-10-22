@@ -31,9 +31,12 @@ public class OALListener extends OALParserBaseListener {
 
     private ConditionExpression conditionExpression;
 
-    public OALListener(OALScripts scripts) {
+    private final String sourcePackage;
+
+    public OALListener(OALScripts scripts, String sourcePackage) {
         this.results = scripts.getMetricsStmts();
         this.collection = scripts.getDisableCollection();
+        this.sourcePackage = sourcePackage;
     }
 
     @Override
@@ -136,6 +139,36 @@ public class OALListener extends OALParserBaseListener {
     }
 
     @Override
+    public void enterNotEqualMatch(final OALParser.NotEqualMatchContext ctx) {
+        conditionExpression.setExpressionType("notEqualMatch");
+    }
+
+    @Override
+    public void enterBooleanNotEqualMatch(final OALParser.BooleanNotEqualMatchContext ctx) {
+        conditionExpression.setExpressionType("booleanNotEqualMatch");
+    }
+
+    @Override
+    public void enterLikeMatch(final OALParser.LikeMatchContext ctx) {
+        conditionExpression.setExpressionType("likeMatch");
+    }
+
+    @Override
+    public void enterInMatch(final OALParser.InMatchContext ctx) {
+        conditionExpression.setExpressionType("inMatch");
+    }
+
+    @Override
+    public void enterMultiConditionValue(final OALParser.MultiConditionValueContext ctx) {
+        conditionExpression.enterMultiConditionValue();
+    }
+
+    @Override
+    public void exitMultiConditionValue(final OALParser.MultiConditionValueContext ctx) {
+        conditionExpression.exitMultiConditionValue();
+    }
+
+    @Override
     public void enterBooleanConditionValue(OALParser.BooleanConditionValueContext ctx) {
         enterConditionValue(ctx.getText());
     }
@@ -158,9 +191,9 @@ public class OALListener extends OALParserBaseListener {
     private void enterConditionValue(String value) {
         if (value.split("\\.").length == 2 && !value.startsWith("\"")) {
             // Value is an enum.
-            value = "org.apache.skywalking.oap.server.core.source." + value;
+            value = sourcePackage + value;
         }
-        conditionExpression.setValue(value);
+        conditionExpression.addValue(value);
     }
 
     /////////////

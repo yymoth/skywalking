@@ -21,8 +21,6 @@ on:
   push:
     branches:
       - master
-    tags:
-      - 'v*'
 
 env:
   SKIP_TEST: true
@@ -32,13 +30,18 @@ jobs:
   PHPAgent:
     name: PHP
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v2
-      - name: checkout submodules
-        shell: bash
-        run: |
-          git submodule sync --recursive
-          git -c protocol.version=2 submodule update --init --force --recursive --depth=1
+        with:
+          submodules: true
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
       - name: Compile and Build
         run: make docker
       - name: Copy dist package

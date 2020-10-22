@@ -31,9 +31,10 @@ import org.apache.skywalking.oap.server.core.analysis.worker.RecordStreamProcess
 import org.apache.skywalking.oap.server.core.source.DefaultScopeDefine;
 import org.apache.skywalking.oap.server.core.storage.StorageBuilder;
 import org.apache.skywalking.oap.server.core.storage.annotation.Column;
-import org.apache.skywalking.oap.server.core.storage.annotation.IDColumn;
+import org.apache.skywalking.oap.server.core.storage.annotation.SuperDataset;
 import org.apache.skywalking.oap.server.library.util.CollectionUtils;
 
+@SuperDataset
 @Stream(name = ZipkinSpanRecord.INDEX_NAME, scopeId = DefaultScopeDefine.ZIPKIN_SPAN, builder = ZipkinSpanRecord.Builder.class, processor = RecordStreamProcessor.class)
 public class ZipkinSpanRecord extends Record {
     public static final String INDEX_NAME = "zipkin_span";
@@ -53,62 +54,50 @@ public class ZipkinSpanRecord extends Record {
     @Setter
     @Getter
     @Column(columnName = TRACE_ID)
-    @IDColumn
     private String traceId;
     @Setter
     @Getter
     @Column(columnName = SPAN_ID)
-    @IDColumn
     private String spanId;
     @Setter
     @Getter
     @Column(columnName = SERVICE_ID)
-    @IDColumn
-    private int serviceId;
+    private String serviceId;
     @Setter
     @Getter
     @Column(columnName = SERVICE_INSTANCE_ID)
-    @IDColumn
-    private int serviceInstanceId;
+    private String serviceInstanceId;
     @Setter
     @Getter
     @Column(columnName = ENDPOINT_NAME, matchQuery = true)
-    @IDColumn
     private String endpointName;
     @Setter
     @Getter
     @Column(columnName = ENDPOINT_ID)
-    @IDColumn
-    private int endpointId;
+    private String endpointId;
     @Setter
     @Getter
     @Column(columnName = START_TIME)
-    @IDColumn
     private long startTime;
     @Setter
     @Getter
     @Column(columnName = END_TIME)
-    @IDColumn
     private long endTime;
     @Setter
     @Getter
     @Column(columnName = LATENCY)
-    @IDColumn
     private int latency;
     @Setter
     @Getter
     @Column(columnName = IS_ERROR)
-    @IDColumn
     private int isError;
     @Setter
     @Getter
     @Column(columnName = DATA_BINARY)
-    @IDColumn
     private byte[] dataBinary;
     @Setter
     @Getter
     @Column(columnName = ENCODE)
-    @IDColumn
     private int encode;
 
     @Override
@@ -146,10 +135,10 @@ public class ZipkinSpanRecord extends Record {
             ZipkinSpanRecord record = new ZipkinSpanRecord();
             record.setTraceId((String) dbMap.get(TRACE_ID));
             record.setSpanId((String) dbMap.get(SPAN_ID));
-            record.setServiceId(((Number) dbMap.get(SERVICE_ID)).intValue());
-            record.setServiceInstanceId(((Number) dbMap.get(SERVICE_INSTANCE_ID)).intValue());
+            record.setServiceId((String) dbMap.get(SERVICE_ID));
+            record.setServiceInstanceId((String) dbMap.get(SERVICE_INSTANCE_ID));
             record.setEndpointName((String) dbMap.get(ENDPOINT_NAME));
-            record.setEndpointId(((Number) dbMap.get(ENDPOINT_ID)).intValue());
+            record.setEndpointId((String) dbMap.get(ENDPOINT_ID));
             record.setStartTime(((Number) dbMap.get(START_TIME)).longValue());
             record.setEndTime(((Number) dbMap.get(END_TIME)).longValue());
             record.setLatency(((Number) dbMap.get(LATENCY)).intValue());
